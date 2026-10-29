@@ -1,4 +1,6 @@
 from datetime import datetime, timezone
+import pandas as pd
+import io
 import json
 import requests
 from airflow.sdk import dag, task
@@ -41,18 +43,23 @@ def upload_raw_weather_data():
 
         # Generate a unique file name using UTC timestamp to avoid overwriting files
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-        blob_name = f"bronze/weather_data_{timestamp}.json"
+        file_name = f"bronze/weather_data_{timestamp}.csv"
         container_name = "weather-data"
 
-        data_json = json.dumps(data, indent=2)
+        df = pd.DataFrame(data)
 
-        # Get a client for the target file inside the container
+        # Save the CSV directly to an in-memory string variable
+        csv_buffer = io.StringIO()
+        df.to_csv(csv_buffer, index=False)
+        csv_string = csv_buffer.getvalue()
+
+        # Get a client for the target file inside the file system
         file_system_client = hook.get_file_system(container_name)
-        file_client = file_system_client.get_file_client(blob_name)
+        file_client = file_system_client.get_file_client(file_name)
 
-        # Upload data to Azure
-        print(f"Uploading file to container '{container_name}' as '{blob_name}'...")
-        file_client.upload_data(data_json, overwrite=True)
+        # Upload CSV string data to Azure (converted to bytes)
+        print(f"Uploading file to file system '{container_name}' as '{file_name}'...")
+        file_client.upload_data(csv_string.encode('utf-8'), overwrite=True)
         print("Upload completed successfully!")
 
 

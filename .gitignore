@@ -1,5 +1,5 @@
 # Intellij
-.idea
+.idea/
 
 # DBT files
 target/

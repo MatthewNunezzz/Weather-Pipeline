@@ -1,3 +1,9 @@
+# DBT files
+target/
+dbt_packages/
+logs/
+.env
+
 *.pem
 logs/
 

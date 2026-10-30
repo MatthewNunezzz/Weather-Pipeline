@@ -1,0 +1,31 @@
+
+version: 2
+
+models:
+  - name: dim_locations
+    description: "dimensions table for locations"
+    columns:
+        - name: location_id
+          description: "MD5 hash of the location name"
+          data_tests:
+            - unique
+            - not_null
+
+  - name: fact_weather_hourly
+    description: "fact table for hourly weather data"
+    columns:
+      - name: weather_event_id
+        description: "MD5 hash of the concatenation of location_id and timestamp_utc"
+        data_tests:
+          - unique
+          - not_null
+
+sources:
+  - name: silver
+    description: "Cleaned and unpacked weather data in the silver layer"
+    catalog: capstoneweatherproject1669
+    schema: silver
+
+    tables:
+      - name: hourly_weather
+        description: "Raw hourly weather records ingested from the Open-Meteo API"

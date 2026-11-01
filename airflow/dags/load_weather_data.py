@@ -79,9 +79,11 @@ def load_weather_data():
             "locations": locations,
             "payload": data,
         }
+
+        # Convert the envelope to a JSON string and encode it to bytes
         json_bytes = json.dumps(envelope).encode("utf-8")
 
-        # Upload json string data to Azure
+        # Upload json data to Azure
         print(f"Uploading file to file system '{container_name}' as '{file_name}'...")
         file_client.upload_data(json_bytes, overwrite=True)
         print("Upload completed successfully!")

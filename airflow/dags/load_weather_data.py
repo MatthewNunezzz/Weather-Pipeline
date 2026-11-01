@@ -25,7 +25,7 @@ locations = [
 @dag(
     dag_id="load_weather_data",
     start_date=datetime(2026, 1, 1),
-    schedule=None,
+    schedule='0 14 * * *',  # Minute 0, Hour 14 (2:00 PM UTC) every day
     catchup=False,
     default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
 )
@@ -94,8 +94,8 @@ def load_weather_data():
     data = fetch_raw_weather()
     file_path = upload_to_azure(data)
 
-    merge_to_silver = DatabricksRunNowOperator(
-        task_id="merge_to_silver",
+    build_datamart = DatabricksRunNowOperator(
+        task_id="build_datamart",
         databricks_conn_id="databricks_default",
         job_id=109920245107190,
         python_params=["--file_path", file_path],

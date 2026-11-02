@@ -7,7 +7,7 @@ dbt_packages/
 logs/
 .env
 
-Virtual Environments
+#Virtual Environments
 dbt-env/
 venv/
 .venv/

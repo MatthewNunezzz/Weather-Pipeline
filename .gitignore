@@ -11,3 +11,5 @@ logs/
 dbt-env/
 venv/
 .venv/
+
+_pycache__/

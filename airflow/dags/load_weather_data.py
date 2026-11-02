@@ -25,9 +25,9 @@ locations = [
 @dag(
     dag_id="load_weather_data",
     start_date=datetime(2026, 1, 1),
-    schedule='0 14 * * *',  # Minute 0, Hour 14 (2:00 PM UTC) every day
+    schedule='0 14 * * *',  # Minute 0, Hour 14 (2:00 PM UTC / 8:00 AM CST) every day
     catchup=False,
-    default_args={"retries": 2, "retry_delay": timedelta(minutes=2)},
+    default_args={"retries": 3, "retry_delay": timedelta(minutes=2)},
 )
 def load_weather_data():
     @task

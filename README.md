@@ -2,9 +2,20 @@
 
 ## Project Overview
 
-**Description**: An end-to-end weather data pipeline that transforms hourly observations for 10 U.S. cities into query-ready Databricks tables. Its daily summaries support comparing weather across cities or tracking selected metrics for one city over time.
+### Description
+An end-to-end weather data pipeline that transforms hourly observations for 10 U.S. cities into query-ready Databricks tables. Its daily summaries support comparing weather across cities or tracking selected metrics for one city over time.
 
-**Schedule**: Airflow job runs daily at 14:00 UTC in a local Docker Compose environment, orchestrating the pipeline for the previous day’s hourly observations, about 240 records across 10 cities per run.
+### Tech Stack
+- **Data source:** Open-Meteo Weather API
+- **Orchestration:** Apache Airflow
+- **Runtime:** Python, Docker Compose
+- **Cloud storage:** Azure Data Lake Storage
+- **Processing and table format:** PySpark, Delta Lake
+- **Data platform and catalog:** Databricks
+- **Analytics modeling and testing:** dbt, SQL
+
+### Schedule
+Airflow job runs daily at 14:00 UTC in a local Docker Compose environment, orchestrating the pipeline for the previous day’s hourly observations, about 240 records across 10 cities per run.
 
 ### Pipeline Workflow
 
@@ -31,14 +42,5 @@ FACT_WEATHER_HOURLY stores timestamped weather measurements and ingestion metada
 
 ### Data quality and reliability
 Airflow tasks are configured for three retries. Before merging, the Silver-layer job checks that its input is non-empty and contains no duplicates; dbt tests model keys for uniqueness and non-null values. Failed runs are visible in Airflow and can be manually rerun or backfilled by logical date.
-
-### Tech Stack
-- **Data source:** Open-Meteo Weather API
-- **Orchestration:** Apache Airflow
-- **Runtime:** Python, Docker Compose
-- **Cloud storage:** Azure Data Lake Storage
-- **Processing and table format:** PySpark, Delta Lake
-- **Data platform and catalog:** Databricks
-- **Analytics modeling and testing:** dbt, SQL
 
 ### CI/CD Workflows

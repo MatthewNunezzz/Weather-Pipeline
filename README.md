@@ -12,11 +12,14 @@
 
 1. **Ingest:** A Python task running in Docker retrieves the previous day’s hourly weather data from the Open-Meteo API.
 2. **Store raw data (Bronze):** Save the API response as JSON in Azure Data Lake Storage.
-![Azure Storage](screenshots/azure_storage.png)
+
+    ![Azure Storage](screenshots/azure_storage.png)
 3. **Transform (Silver):** Use PySpark to clean and structure the raw data as a Delta table in Databricks.
-![Silver Table](screenshots/silver_layer_table.png)
+
+    ![Silver Table](screenshots/silver_layer_table.png)
 4. **Model (Gold):** Use dbt and SQL to build a location dimension, an incremental hourly weather fact table, and daily city-level summaries of temperature, humidity, precipitation, wind speed, and solar radiation.
-![Daily Weather Summary](screenshots/daily_weather_summary.png)
+
+    ![Daily Weather Summary](screenshots/daily_weather_summary.png)
 
 ### Physical Entity Relationship Diagram
 

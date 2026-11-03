@@ -1,17 +1,20 @@
 import argparse
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
+
+from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
-from delta.tables import DeltaTable
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Process bronze weather JSON to silver Delta table.")
+    parser = argparse.ArgumentParser(
+        description="Process bronze weather JSON to silver Delta table."
+    )
     parser.add_argument(
         "--file_path",
         type=str,
         default="",
-        help="Relative path to the bronze JSON file in ABFSS storage."
+        help="Relative path to the bronze JSON file in ABFSS storage.",
     )
     return parser.parse_args()
 
@@ -21,13 +24,11 @@ def main():
     file_path = args.file_path
 
     # Initialize Spark Session
-    spark = SparkSession.builder \
-        .appName("ProcessSilverHourlyWeather") \
-        .getOrCreate()
+    spark = SparkSession.builder.appName("ProcessSilverHourlyWeather").getOrCreate()
 
     # If run manually or file_path is empty, default to yesterday's file
     if not file_path:
-        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date()
+        yesterday = (datetime.now(UTC) - timedelta(days=1)).date()
         file_path = f"bronze/weather_data_{yesterday}.json"
 
     path = f"abfss://weather-data@weatherdata2012.dfs.core.windows.net/{file_path}"
@@ -82,7 +83,7 @@ def main():
         "latitude",
         "longitude",
         *[F.col(f"h.{m}").cast("double").alias(m) for m in metrics],
-        "ingested_at_utc"
+        "ingested_at_utc",
     ).withColumn("time_local", F.from_utc_timestamp("time_utc", F.col("timezone")))
 
     # Check for empty DataFrame
@@ -90,7 +91,12 @@ def main():
         raise ValueError("No rows unpacked from the envelope; aborting merge")
 
     # Check for duplicate keys
-    dup_keys = hourly_df.groupBy("location_name", "time_utc").count().filter("count > 1").count()
+    dup_keys = (
+        hourly_df.groupBy("location_name", "time_utc")
+        .count()
+        .filter("count > 1")
+        .count()
+    )
     if dup_keys > 0:
         raise ValueError(f"{dup_keys} duplicate location/hour keys; aborting merge")
 

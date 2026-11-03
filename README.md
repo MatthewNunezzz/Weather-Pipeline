@@ -22,6 +22,8 @@ Airflow job runs daily at 14:00 UTC in a local Docker Compose environment, orche
 ![Weather pipeline flowchart](Pipeline-Flowchart.png)
 
 1. **Ingest:** A Python task running in Docker retrieves the previous day’s hourly weather data from the Open-Meteo API.
+
+    ![Airflow Tasks](screenshots/airflow_tasks.png)
 2. **Store raw data (Bronze):** Save the API response as JSON in Azure Data Lake Storage.
 
     ![Azure Storage](screenshots/azure_storage.png)
@@ -44,3 +46,8 @@ FACT_WEATHER_HOURLY stores timestamped weather measurements and ingestion metada
 Airflow tasks are configured for three retries. Before merging, the Silver-layer job checks that its input is non-empty and contains no duplicates; dbt tests model keys for uniqueness and non-null values. Failed runs are visible in Airflow and can be manually rerun or backfilled by logical date.
 
 ### CI/CD Workflows
+
+tasks for tomorrow:
+    - Implement CI/CD workflow / documentation
+    - Mention Design Decisions
+    - Finalize ReadME.md

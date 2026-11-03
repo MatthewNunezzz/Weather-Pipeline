@@ -16,7 +16,7 @@ def test_fetch_raw_weather_success():
     expected_mock_response = {
         "hourly": {
             "temperature_2m": [26.4, 24.4],
-            "time": ["2026-11-01T00:00","2026-11-01T23:00"],
+            "time": ["2026-11-01T00:00", "2026-11-01T23:00"],
         },
         "latitude": 32.75,
         "timezone": "GMT",
@@ -28,7 +28,7 @@ def test_fetch_raw_weather_success():
         },
         "generationtime_ms": 0.11050701141357422,
         "utc_offset_seconds": 0,
-        "timezone_abbreviation": "GMT"
+        "timezone_abbreviation": "GMT",
     }
 
     with requests_mock.Mocker() as mock:

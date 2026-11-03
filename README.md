@@ -1,6 +1,14 @@
 # Historical Weather Pipeline
 
 ## Project Overview
+- [Project Description](#description)
+- [Tech Stack](#tech-stack)
+- [Pipeline Schedule](#schedule)
+- [Pipeline Workflow](#pipeline-workflow)
+- [ER Diagram](#physical-entity-relationship-diagram)
+- [Data quality and reliability](#data-quality-and-reliability)
+- [Continuous Integration](#continuous-integration)
+
 
 ### Description
 An end-to-end weather data pipeline that transforms hourly observations for 10 U.S. cities into query-ready Databricks tables. Its daily summaries support comparing weather across cities or tracking selected metrics for one city over time.
@@ -45,9 +53,10 @@ FACT_WEATHER_HOURLY stores timestamped weather measurements and ingestion metada
 ### Data quality and reliability
 Airflow tasks are configured for three retries. Before merging, the Silver-layer job checks that its input is non-empty and contains no duplicates; dbt tests model keys for uniqueness and non-null values. Failed runs are visible in Airflow and can be manually rerun or backfilled by logical date.
 
-### CI/CD Workflows
+### Continuous Integration
 
-tasks for tomorrow:
-    - Implement CI/CD workflow / documentation
-    - Mention Design Decisions
-    - Finalize ReadME.md
+GitHub Actions runs three checks on every pull request and every push to `main`:
+
+- **Linting:** Ruff scans the Python code for style violations and syntax errors.
+- **Unit tests:** pytest covers both the Python ingestion logic and the PySpark transformations, with the transforms running against a local Spark session.
+- **dbt validation:** `dbt parse` confirms the dbt project compiles, with all models, references, and YAML configs resolving correctly.

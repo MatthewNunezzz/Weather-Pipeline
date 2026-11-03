@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["tests/test-ingestion.py", "tests/test-silver-layer.py"]
+pythonpath = ["databricks/Scripts", "airflow/dags"]

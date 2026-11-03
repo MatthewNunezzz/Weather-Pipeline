@@ -1,0 +1,4 @@
+pytest
+requests_mock
+pyspark==3.5.3
+delta-spark==3.2.1

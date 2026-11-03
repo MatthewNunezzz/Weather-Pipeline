@@ -5,6 +5,17 @@ from delta.tables import DeltaTable
 from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
+# Define list of weather metrics
+METRICS = [
+    "temperature_2m",
+    "relative_humidity_2m",
+    "surface_pressure",
+    "precipitation",
+    "rain",
+    "wind_speed_10m",
+    "wind_direction_10m",
+    "shortwave_radiation",
+]
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -18,48 +29,13 @@ def parse_args():
     )
     return parser.parse_args()
 
-
-def main():
-    args = parse_args()
-    file_path = args.file_path
-
-    # Initialize Spark Session
-    spark = SparkSession.builder.appName("ProcessSilverHourlyWeather").getOrCreate()
-
-    # If run manually or file_path is empty, default to yesterday's file
-    if not file_path:
-        yesterday = (datetime.now(UTC) - timedelta(days=1)).date()
-        file_path = f"bronze/weather_data_{yesterday}.json"
-
-    path = f"abfss://weather-data@weatherdata2012.dfs.core.windows.net/{file_path}"
-    table_name = "capstoneweatherproject1669.silver.hourly_weather"
-
-    # Define list of weather metrics
-    metrics = [
-        "temperature_2m",
-        "relative_humidity_2m",
-        "surface_pressure",
-        "precipitation",
-        "rain",
-        "wind_speed_10m",
-        "wind_direction_10m",
-        "shortwave_radiation",
-    ]
-
-    # Set the Spark session timezone to UTC
-    spark.conf.set("spark.sql.session.timeZone", "UTC")
-
-    print(f"Reading data from: {path}")
-
-    # Read the JSON file into a Spark DataFrame
-    raw_df = spark.read.option("multiLine", True).json(path)
-
+def unpack_hourly(raw_df, metrics=METRICS):
     # Unpack city data into individual rows
     cities = raw_df.select(
         F.to_timestamp("ingested_at_utc").alias("ingested_at_utc"),
         F.explode(F.arrays_zip("locations", "payload")).alias("city"),
     )
-
+    
     # Unpack hourly data into individual rows
     hours = cities.select(
         "ingested_at_utc",
@@ -86,6 +62,9 @@ def main():
         "ingested_at_utc",
     ).withColumn("time_local", F.from_utc_timestamp("time_utc", F.col("timezone")))
 
+    return hourly_df
+
+def validate_hourly_df(hourly_df):
     # Check for empty DataFrame
     if hourly_df.count() == 0:
         raise ValueError("No rows unpacked from the envelope; aborting merge")
@@ -100,6 +79,33 @@ def main():
     if dup_keys > 0:
         raise ValueError(f"{dup_keys} duplicate location/hour keys; aborting merge")
 
+def main():
+    args = parse_args()
+    file_path = args.file_path
+
+    # If run manually or file_path is empty, default to yesterday's file
+    if not file_path:
+        yesterday = (datetime.now(UTC) - timedelta(days=1)).date()
+        file_path = f"bronze/weather_data_{yesterday}.json"
+
+    path = f"abfss://weather-data@weatherdata2012.dfs.core.windows.net/{file_path}"
+
+    # Initialize Spark Session and set timezone to UTC
+    spark = SparkSession.builder.appName("ProcessSilverHourlyWeather").getOrCreate()
+    spark.conf.set("spark.sql.session.timeZone", "UTC")
+
+    print(f"Reading data from: {path}")
+
+    # Read the JSON file into a Spark DataFrame
+    raw_df = spark.read.option("multiLine", True).json(path)
+
+    # Unpack the raw DataFrame into hourly records
+    hourly_df = unpack_hourly(raw_df)
+
+    # Check for empty DataFrame or duplicate keys before merging
+    validate_hourly_df(hourly_df)
+
+    table_name = "capstoneweatherproject1669.silver.hourly_weather"
     print(f"Executing Delta merge into target table: {table_name}")
 
     # Write the DataFrame to silver.hourly_weather table

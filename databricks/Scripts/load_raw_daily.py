@@ -17,6 +17,7 @@ METRICS = [
     "shortwave_radiation",
 ]
 
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Process bronze weather JSON to silver Delta table."
@@ -29,13 +30,14 @@ def parse_args():
     )
     return parser.parse_args()
 
+
 def unpack_hourly(raw_df, metrics=METRICS):
     # Unpack city data into individual rows
     cities = raw_df.select(
         F.to_timestamp("ingested_at_utc").alias("ingested_at_utc"),
         F.explode(F.arrays_zip("locations", "payload")).alias("city"),
     )
-    
+
     # Unpack hourly data into individual rows
     hours = cities.select(
         "ingested_at_utc",
@@ -64,6 +66,7 @@ def unpack_hourly(raw_df, metrics=METRICS):
 
     return hourly_df
 
+
 def validate_hourly_df(hourly_df):
     # Check for empty DataFrame
     if hourly_df.count() == 0:
@@ -78,6 +81,7 @@ def validate_hourly_df(hourly_df):
     )
     if dup_keys > 0:
         raise ValueError(f"{dup_keys} duplicate location/hour keys; aborting merge")
+
 
 def main():
     args = parse_args()

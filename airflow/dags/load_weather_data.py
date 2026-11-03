@@ -1,10 +1,14 @@
-import json
 from datetime import UTC, datetime, timedelta
 
-import requests
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
 from airflow.providers.microsoft.azure.hooks.data_lake import AzureDataLakeStorageV2Hook
 from airflow.sdk import dag, task
+from weather_ingestion import (
+    fetch_raw_weather as fetch_weather_data,
+)
+from weather_ingestion import (
+    upload_to_azure as upload_weather_to_azure,
+)
 
 yesterday = (datetime.now(UTC) - timedelta(days=1)).date()
 
@@ -82,68 +86,17 @@ locations = [
 def load_weather_data():
     @task
     def fetch_raw_weather():
-        """Fetches yesterday's hourly weather data from Open-Meteo API."""
-        hourly_variables = [
-            "temperature_2m",
-            "relative_humidity_2m",
-            "surface_pressure",
-            "precipitation",  # total: rain + showers + snow
-            "rain",
-            "wind_speed_10m",
-            "wind_direction_10m",
-            "shortwave_radiation",  # Shortwave Solar Radiation (GHI)
-        ]
-
-        api_url = "https://api.open-meteo.com/v1/forecast"
-
-        params = {
-            "latitude": ",".join(str(loc["lat"]) for loc in locations),
-            "longitude": ",".join(str(loc["lon"]) for loc in locations),
-            "hourly": ",".join(hourly_variables),
-            "timezone": "GMT",
-            "start_hour": f"{yesterday}T00:00",
-            "end_hour": f"{yesterday}T23:00",
-        }
-
-        print("Fetching weather data ...")
-        response = requests.get(api_url, params=params)
-        response.raise_for_status()
-
-        return response.json()
+        return fetch_weather_data(locations, yesterday)
 
     @task
     def upload_to_azure(data):
         hook = AzureDataLakeStorageV2Hook(adls_conn_id="weather_adls")
-
-        # Generate a unique file name using UTC date to avoid overwriting files
-        file_name = f"bronze/weather_data_{yesterday}.json"
-        container_name = "weather-data"
-
-        # Get a client for the target file inside the file system
-        file_system_client = hook.get_file_system(container_name)
-        file_client = file_system_client.get_file_client(file_name)
-
-        # Wrap payload in an envelope with context
-        envelope = {
-            "ingested_at_utc": datetime.now(UTC).isoformat(),
-            "locations": locations,
-            "payload": data,
-        }
-
-        # Convert the envelope to a JSON string and encode it to bytes
-        json_bytes = json.dumps(envelope).encode("utf-8")
-
-        # Upload json data to Azure
-        print(f"Uploading file to file system '{container_name}' as '{file_name}'...")
-        file_client.upload_data(json_bytes, overwrite=True)
-        print("Upload completed successfully!")
-
-        props = file_client.get_file_properties()
-        print(
-            f"Confirmed: {props.name}, {props.size} bytes, modified {props.last_modified}"
+        return upload_weather_to_azure(
+            data,
+            locations,
+            yesterday,
+            hook,
         )
-
-        return file_name
 
     data = fetch_raw_weather()
     file_path = upload_to_azure(data)

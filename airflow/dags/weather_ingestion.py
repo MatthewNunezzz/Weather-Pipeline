@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 import requests
 
 
-def fetch_raw_weather(locations, yesterday):
+def fetch_weather_data(locations, yesterday):
     """Fetch yesterday's hourly weather data from Open-Meteo."""
     hourly_variables = [
         "temperature_2m",
@@ -35,7 +35,7 @@ def fetch_raw_weather(locations, yesterday):
     return response.json()
 
 
-def upload_to_azure(data, locations, yesterday, hook):
+def upload_weather_to_azure(data, locations, yesterday, hook):
     """Upload a weather payload to Azure through an Azure Data Lake hook."""
     file_name = f"bronze/weather_data_{yesterday}.json"
     container_name = "weather-data"

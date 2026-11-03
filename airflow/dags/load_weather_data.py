@@ -3,12 +3,7 @@ from datetime import UTC, datetime, timedelta
 from airflow.providers.databricks.operators.databricks import DatabricksRunNowOperator
 from airflow.providers.microsoft.azure.hooks.data_lake import AzureDataLakeStorageV2Hook
 from airflow.sdk import dag, task
-from weather_ingestion import (
-    fetch_raw_weather as fetch_weather_data,
-)
-from weather_ingestion import (
-    upload_to_azure as upload_weather_to_azure,
-)
+from weather_ingestion import fetch_weather_data, upload_weather_to_azure
 
 yesterday = (datetime.now(UTC) - timedelta(days=1)).date()
 

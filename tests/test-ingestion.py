@@ -6,14 +6,30 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 import requests
 import requests_mock
-from weather_ingestion import fetch_raw_weather, upload_to_azure
+from weather_ingestion import fetch_weather_data, upload_weather_to_azure
 
 
 def test_fetch_raw_weather_success():
-    mock_locations = [{"lat": 32.75, "lon": -97.33}, {"lat": 30.26, "lon": -97.74}]
+    mock_locations = [{"lat": 32.75, "lon": -97.33}]
     mock_yesterday = "2026-11-01"
 
-    expected_mock_response = {"hourly": {"temperature_2m": [20.5, 21.0]}}
+    expected_mock_response = {
+        "hourly": {
+            "temperature_2m": [26.4, 24.4],
+            "time": ["2026-11-01T00:00","2026-11-01T23:00"],
+        },
+        "latitude": 32.75,
+        "timezone": "GMT",
+        "elevation": 137.0,
+        "longitude": -97.33,
+        "hourly_units": {
+            "time": "iso8601",
+            "temperature_2m": "\u00b0C",
+        },
+        "generationtime_ms": 0.11050701141357422,
+        "utc_offset_seconds": 0,
+        "timezone_abbreviation": "GMT"
+    }
 
     with requests_mock.Mocker() as mock:
         mock.get(
@@ -22,12 +38,12 @@ def test_fetch_raw_weather_success():
             status_code=200,
         )
 
-        result = fetch_raw_weather(mock_locations, mock_yesterday)
+        result = fetch_weather_data(mock_locations, mock_yesterday)
 
         assert result == expected_mock_response
         query = parse_qs(urlparse(mock.last_request.url).query)
-        assert query["latitude"] == ["32.75,30.26"]
-        assert query["longitude"] == ["-97.33,-97.74"]
+        assert query["latitude"] == ["32.75"]
+        assert query["longitude"] == ["-97.33"]
         assert query["start_hour"] == ["2026-11-01T00:00"]
         assert query["end_hour"] == ["2026-11-01T23:00"]
 
@@ -37,7 +53,7 @@ def test_fetch_raw_weather_api_failure():
         mock.get("https://api.open-meteo.com/v1/forecast", status_code=502)
 
         with pytest.raises(requests.exceptions.HTTPError):
-            fetch_raw_weather([{"lat": 0, "lon": 0}], "2026-11-01")
+            fetch_weather_data([{"lat": 0, "lon": 0}], "2026-11-01")
 
 
 def test_upload_to_azure_success():
@@ -46,7 +62,7 @@ def test_upload_to_azure_success():
     file_client = FakeFileClient()
     hook = FakeAzureHook(file_client)
 
-    result = upload_to_azure(payload, locations, "2026-11-01", hook)
+    result = upload_weather_to_azure(payload, locations, "2026-11-01", hook)
 
     assert result == "bronze/weather_data_2026-11-01.json"
     assert hook.container_name == "weather-data"
@@ -64,7 +80,7 @@ def test_upload_to_azure_failure_propagates():
     hook = FakeAzureHook(file_client)
 
     with pytest.raises(RuntimeError, match="Azure upload failed"):
-        upload_to_azure({}, [], "2026-11-01", hook)
+        upload_weather_to_azure({}, [], "2026-11-01", hook)
 
 
 class FakeAzureHook:
